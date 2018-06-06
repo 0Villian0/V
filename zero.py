@@ -1,7 +1,7 @@
-#!usr/bin/env python3
-# coding=utf-8
-# Author:Villian
-# Date:2018|6|5
+#! usr/bin/env python3
+# coding = utf-8
+# Author: 0Villian0
+# Date: 6|5|2018
 from PIL     import Image, ImageDraw, ImageFont
 import time
 import argparse
