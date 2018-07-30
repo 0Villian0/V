@@ -99,34 +99,34 @@ class Node(object):
     """节点类
             parent:当前节点的父节点
             r,c:当前节点的行,列坐标
-            F: 当前点到起点,当前点到终点的总消耗(距离)
-            G:当前点到起点的距离
-            Hn: 当前点到终点的距离
+            f: 当前点到起点,当前点到终点的总消耗(距离)
+            g:当前点到起点的距离
+            hn: 当前点到终点的距离
     """
-    def __init__(self, parent, r, c, F, G, Hn):
+    def __init__(self, parent, r, c, f, g, hn):
         self.parent = parent
         self.xrow = r
         self.ycol = c
-        self.F = F
-        self.G = G
-        self.Hn = Hn
+        self.f = f
+        self.g = g
+        self.hn = hn
 
 
 class AStar(object):
     """A星算法实现类
             sr,sc:起点的行,列
             er,ec:目标点得行列
-            BLOCK_XROW,BLOCK_YCOL:地图格子总的行和列
+            block_xrow,block_ycol:地图格子总的行和列
             open,close,path:寻路中的开启,关闭,路径列表
             snakes :贪吃蛇列表
     """
-    def __init__(self, sc, sr, ec, er, BLOCK_XROM, BLOCK_YCOL, snakes):
+    def __init__(self, sc, sr, ec, er, block_xrow, block_ycol, snakes):
         self.starxrow = sr
         self.starycol = sc
         self.endxrow = er
         self.endycol = ec
-        self.totalxrow = BLOCK_XROM
-        self.totalycol = BLOCK_YCOL
+        self.totalxrow = block_xrow
+        self.totalycol = block_ycol
         self.open = []
         self.close = []
         self.path = []
@@ -139,7 +139,7 @@ class AStar(object):
             self.extend_node(starnode, length)                                                                          # 扩展当前节点的四周节点
             if not self.open:                                                                                           # 判断开放列表是否为空，是则没有找到路径退出
                 return []
-            self.open.sort(key=lambda x: x.F)                                                                           # 对开放列表按照F值进行排序
+            self.open.sort(key=lambda x: x.f)                                                                           # 对开放列表按照F值进行排序
             if length == 'short':
                 starnode = self.open[0]                                                                                 # 参数为short时获取最短路径即获取F值最小的节点
             elif length == 'long':                                                                                      # 参数为long时获取最长路径即获取F值最大的节点
@@ -161,21 +161,21 @@ class AStar(object):
             new_row = node.xrow + row
             new_col = node.ycol + col                                                                                   # 遍历四个方向扩展新节点坐标
             i += 1
-            G = node.G + 1                                                                                              # 新节点到起点间的距离
-            Hn = self.get_cur_to_end(new_row, new_col)                                                                  # 新节点到终点间的距离
-            F = G + Hn                                                                                                  # 总消耗
+            g = node.g + 1                                                                                              # 新节点到起点间的距离
+            hn = self.get_cur_to_end(new_row, new_col)                                                                  # 新节点到终点间的距离
+            f = g + hn                                                                                                  # 总消耗
             if not self.judge_usable(new_row, new_col):                                                                 # 判断新坐标点是否可用
                 continue
-            new_node = Node(node, new_row, new_col, F, G, Hn)                                                           # 新坐标点可用则生成新节点
+            new_node = Node(node, new_row, new_col, f, g, hn)                                                           # 新坐标点可用则生成新节点
             if self.judge_node_in_close(new_node):                                                                      # 如果新节点在关闭列表中则忽略
                 continue
             i = self.judge_node_in_open(new_node)
             if i == -1:                                                                                                 # 不在开放列表中则添加进去
                 self.open.append(new_node)
             else:                                                                                                       # 已经在开放列表中如果新的G值更低,那就把相邻方格的父节点改为目前选中的方格,对应的H,G也跟着变化
-                if length == 'short' and self.open[i].G > new_node.G:                                                   # 参数length为short，则求最短路径
+                if length == 'short' and self.open[i].g > new_node.g:                                                   # 参数length为short，则求最短路径
                     self.open[i] = new_node
-                elif length == 'long' and self.open[i].G < new_node.G:                                                  # 参数length为long，则求最长路径
+                elif length == 'long' and self.open[i].g < new_node.g:                                                  # 参数length为long，则求最长路径
                     self.open[i] = new_node
                 else:
                     continue
@@ -228,10 +228,11 @@ def ai():
         if len(snake) == (H - 1)*(W - 1):                                                                               # 贪吃蛇铺满地图，胜利，退出
             w.addch(snake[0][0], snake[0][1], 'X', curses.color_pair(1))
             w.addch(snake[1][0], snake[1][1], 'X', curses.color_pair(3))
-            time.sleep(180)
+            w.getch()
             return True
         w.addch(snake[0][0], snake[0][1], 'X', curses.color_pair(1))
         w.addch(snake[1][0], snake[1][1], 'X', curses.color_pair(3))
+        w.addch(snake[-1][0], snake[-1][1], 'X', curses.color_pair(2))
         if w.getch() == 27:                                                                                             # 错误点：getch应该放在addch方法的后面  等待键盘输入，刷新屏幕打印输出
             return
 
@@ -257,7 +258,12 @@ def find_path():
 
 def judge_virtual_snake_safe(p):
     v_snake = virtual_snake(p)                                                                                          # 派出虚拟蛇去吃食物
-    if follow_tail(v_snake):                                                                                            # 判断虚拟蛇吃掉食物后是否可以追着蛇尾
+    if len(v_snake) == (H - 1)*(W - 1):                                                                                 # 如果虚拟蛇吃完后铺满整张地图则直接返回True让真蛇去吃
+        return True
+    if follow_tail(v_snake, 'long'):                                                                                    # 判断虚拟蛇吃掉食物后是否可以追着蛇尾
+        if v_snake[0][0] + 1 == v_snake[-1][0] or v_snake[0][0] - 1 == v_snake[-1][0] \
+                or v_snake[0][1] + 1 == v_snake[-1][1] or v_snake[0][1] - 1 == v_snake[-1][1]:                          # 如果蛇头和蛇尾紧挨着，则返回False即不能follow_tail，追着蛇尾运动了
+            return False
         return True
 
 
